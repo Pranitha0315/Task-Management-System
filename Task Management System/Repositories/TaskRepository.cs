@@ -6,8 +6,6 @@ namespace Task_Management_System.Repositories
 {
     public class TaskRepository
     {
-        public class ProductRepository : IProductRepository
-        {
             private readonly string _connectionStrings;
 
             public ProductRepository(IConfiguration configuration)
