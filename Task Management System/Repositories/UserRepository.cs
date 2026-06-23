@@ -134,7 +134,7 @@ namespace Task_Management_System.Repositories
                                 };
                             }
 
-                            if (!reader.IsDBNull(3)) // TaskId exists
+                            if (!reader.IsDBNull(3)) 
                             {
                                 Detail.Tasks.Add(new TaskItem
                                 {

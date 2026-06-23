@@ -1,4 +1,5 @@
-﻿using Task_Management_System.Models;
+﻿using Task_Management_System.DTOs;
+using Task_Management_System.Models;
 
 namespace Task_Management_System.Repositories
 {
@@ -11,7 +12,10 @@ namespace Task_Management_System.Repositories
         List<TaskItem> UpdateTask(string Title, string Description, string Status, int UserId);
         bool ChangeStatus(string Status, int TaskID);
         void DeleteTask(int TaskID);
-
-
+        TaskItem AddTask(TaskItemResponseDto newTask);
+        TaskItem UpdateTask(TaskItemResponseDto updatedTask);
+        TaskItem ChangeStatus(TaskItem changeStatus);
+        TaskItem DeleteTask(object taskId);
+        TaskItem UpdateTask(UpdateTaskItemDto updatedTask);
     }
 }

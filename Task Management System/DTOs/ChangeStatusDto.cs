@@ -2,6 +2,7 @@
 {
     public class ChangeStatusDto
     {
-        public string Status { get; set; }
+        public string? Status { get; set; }
+        public int TaskId { get; internal set; }
     }
 }

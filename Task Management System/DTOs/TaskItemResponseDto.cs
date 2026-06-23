@@ -10,6 +10,6 @@
         public DateTime CreatedDate { get; set; }
         public int UserId { get; set; }
         public string UserName { get; set; }
-
+        public object Email { get; internal set; }
     }
 }
