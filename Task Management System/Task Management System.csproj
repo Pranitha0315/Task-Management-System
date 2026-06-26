@@ -11,6 +11,7 @@
     <PackageReference Include="Google.AdWords" Version="24.19.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.1" />
     <PackageReference Include="Microsoft.Exchange.WebServices" Version="2.2.0" />
+    <PackageReference Include="NEST" Version="7.17.5" />
     <PackageReference Include="PayPal" Version="1.9.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>

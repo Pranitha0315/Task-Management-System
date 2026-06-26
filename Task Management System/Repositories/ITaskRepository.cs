@@ -8,14 +8,17 @@ namespace Task_Management_System.Repositories
         List<TaskItem> GetAllTasks();
         TaskItem GetTaskById(int TaskID);
         TaskItem SearchTasks(string Title);
-        List<TaskItem> AddTask(int TaskID, string Title, string Description, string Status, int UserId);
-        List<TaskItem> UpdateTask(string Title, string Description, string Status, int UserId);
+      
         bool ChangeStatus(string Status, int TaskID);
         void DeleteTask(int TaskID);
-        TaskItem AddTask(TaskItemResponseDto newTask);
-        TaskItem UpdateTask(TaskItemResponseDto updatedTask);
+        TaskItem AddTask(int taskId, TaskItemResponseDto newTask);
+    
         TaskItem ChangeStatus(TaskItem changeStatus);
-        TaskItem DeleteTask(object taskId);
+   
         TaskItem UpdateTask(UpdateTaskItemDto updatedTask);
+        User GetTaskById(List<TaskItem> taskId);
+        bool TaskExits(int taskId);
+        void UpdateTask(int taskId, string title, string status, string description, int userID);
+        int AddTask(int taskId, string? title, string? status, string description, int userID);
     }
 }

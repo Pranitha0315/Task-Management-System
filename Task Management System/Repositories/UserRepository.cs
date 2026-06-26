@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Data;
 using Microsoft.Data.SqlClient;
-
+using Task_Management_System.DTOs;
 using Task_Management_System.Models;
 
 namespace Task_Management_System.Repositories
@@ -154,5 +154,24 @@ namespace Task_Management_System.Repositories
             return Detail;
         }
 
+        public User AddUser(string userName, ApiResponse userlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        public User AddUser(string userName, CreateUserDto userlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool EmailExit(string email)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int AddUser(string userName, string email)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

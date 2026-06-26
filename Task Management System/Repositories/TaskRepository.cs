@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
+using Task_Management_System.DTOs;
 using Task_Management_System.Models;
 using static Task_Management_System.Repositories.TaskRepository;
 
@@ -139,7 +140,7 @@ namespace Task_Management_System.Repositories
                 using SqlConnection connection = new SqlConnection(_connectionStrings);
 
                 connection.Open();
-                string query = "UPDATE Products SET Title = @Title, Description = @Description,Status = @Status, UserId = @UserId where TaskId= @TaskId";
+                string query = "UPDATE Tasks SET Title = @Title, Description = @Description,Status = @Status, UserId = @UserId where TaskId= @TaskId";
 
                 using SqlCommand command = new SqlCommand(query, connection);
 
@@ -192,8 +193,44 @@ namespace Task_Management_System.Repositories
 
             }
 
+        public TaskItem AddTask(TaskItemResponseDto newTask)
+        {
+            throw new NotImplementedException();
+        }
 
+        public TaskItem ChangeStatus(TaskItem changeStatus)
+        {
+            throw new NotImplementedException();
+        }
 
-        
+        public TaskItem UpdateTask(UpdateTaskItemDto updatedTask)
+        {
+            throw new NotImplementedException();
+        }
+
+        public User GetTaskById(List<TaskItem> taskId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TaskExits(int taskId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateTask(int taskId, string title, string status, string description, int userID)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TaskItem AddTask(int taskId, TaskItemResponseDto newTask)
+        {
+            throw new NotImplementedException();
+        }
+
+        int ITaskRepository.AddTask(int taskId, string? title, string? status, string description, int userID)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
