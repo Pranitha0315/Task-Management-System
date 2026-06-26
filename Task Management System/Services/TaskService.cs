@@ -93,12 +93,7 @@ namespace Task_Management_System.Services
                 UserId = UserId
             };
 
-            TaskItem createdTask = _taskRepository.AddTask(TaskItemlist);
 
-            if (createdTask == null)
-            {
-                return null;
-            }
 
             TaskItemResponseDto taskItemResponseDto = new()
             {
@@ -235,12 +230,6 @@ namespace Task_Management_System.Services
             throw new NotImplementedException();
         }
 
-        public TaskItem UpdateTask(UpdateTaskItemDto updatedTask)
-        {
-            throw new NotImplementedException();
-        }
-    }
-}
 
 
 
