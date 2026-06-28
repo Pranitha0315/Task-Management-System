@@ -1,6 +1,6 @@
-﻿namespace Task_Management_System.DTOs
+namespace Task_Management_System.DTOs
 {
-    public class CreateUserDto
+    public class UpdateUserDto
     {
         public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;

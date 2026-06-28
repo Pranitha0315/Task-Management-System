@@ -2,12 +2,9 @@
 {
     public class UpdateTaskItemDto
     {
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string Status { get; set; }
-
-        public int UserID { get; set; }
-        public int UserId { get; internal set; }
-        public int TaskId { get; internal set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public int UserId { get; set; }
     }
 }

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Task_Management_System.DTOs;
 using Task_Management_System.Services;
 
@@ -10,33 +9,66 @@ namespace Task_Management_System.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+
         public UserController(IUserService userService)
         {
             _userService = userService;
         }
+
         [HttpGet]
         public IActionResult GetAllUsers()
         {
-            var result = _userService.GetAllUsers();
-            return Ok(result);
+            return Ok(_userService.GetAllUsers());
         }
-        [HttpGet("{UserId}")]
-        public IActionResult GetUserById(int UserId)
+
+        [HttpGet("{userId}")]
+        public IActionResult GetUserById(int userId)
         {
-            var result = _userService.GetUserById(UserId);
-            return Ok(result);
+            UserResponseDto? user = _userService.GetUserById(userId);
+            return user == null ? NotFound() : Ok(user);
         }
+
+        [HttpGet("{userId}/tasks")]
+        public IActionResult GetUserWithTasks(int userId)
+        {
+            ApiResponse<UserWithTasksDto> result = _userService.GetUserWithTasks(userId);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return result.Message == "User not found." ? NotFound(result) : BadRequest(result);
+        }
+
         [HttpPost]
         public IActionResult AddUser([FromBody] CreateUserDto dto)
         {
-            var result = _userService.AddUser(dto);
-            return Ok(result);
+            ApiResponse<UserResponseDto> result = _userService.AddUser(dto);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
-        [HttpGet]
-        public IActionResult GetUserWithTasks(int UserId)
+
+        [HttpPut("{userId}")]
+        public IActionResult UpdateUser(int userId, [FromBody] UpdateUserDto dto)
         {
-            var result = _userService.GetUserWithTasks(UserId);
-            return Ok(result);
+            ApiResponse<UserResponseDto> result = _userService.UpdateUser(userId, dto);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return result.Message == "User not found." ? NotFound(result) : BadRequest(result);
+        }
+
+        [HttpDelete("{userId}")]
+        public IActionResult DeleteUser(int userId)
+        {
+            ApiResponse<UserResponseDto> result = _userService.DeleteUser(userId);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return result.Message == "User not found." ? NotFound(result) : BadRequest(result);
         }
     }
 }

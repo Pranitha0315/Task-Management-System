@@ -1,9 +1,4 @@
-﻿using System.Reflection.PortableExecutable;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Data.SqlClient;
-using Microsoft.IdentityModel.Tokens.Experimental;
-
-using Task_Management_System.DTOs;
+﻿using Task_Management_System.DTOs;
 using Task_Management_System.Models;
 using Task_Management_System.Repositories;
 
@@ -14,288 +9,182 @@ namespace Task_Management_System.Services
         private readonly ITaskRepository _taskRepository;
         private readonly IUserRepository _userRepository;
 
-        private int TaskId;
-
-        public TaskService(ITaskRepository TaskRepository, IUserRepository userRepository)
+        public TaskService(ITaskRepository taskRepository, IUserRepository userRepository)
         {
-            _taskRepository = TaskRepository;
+            _taskRepository = taskRepository;
             _userRepository = userRepository;
         }
 
-        List<TaskItemResponseDto> GetAllTasks()
+        public List<TaskItemResponseDto> GetAllTasks()
         {
-            List<TaskItem> TaskItemlist = _taskRepository.GetAllTasks();
-            List<TaskItemResponseDto> TaskItemlistDtos = new List<TaskItemResponseDto>();
-            foreach (var TaskItemlists in TaskItemlist)
-            {
-                TaskItemResponseDto TaskItemlistDto = new TaskItemResponseDto
-                {
-                    TaskId = TaskItemlists.TaskId,
-                    Title = TaskItemlists.Title,
-                    Description = TaskItemlists.Description,
-                    Status = TaskItemlists.Status
-                };
-                TaskItemlistDtos.Add(TaskItemlistDto);
-
-
-
-            }
-            return TaskItemlistDtos;
+            return _taskRepository.GetAllTasks().Select(MapToDto).ToList();
         }
 
-
-        TaskItemResponseDto GetTaskById(int TaskId)
+        public TaskItemResponseDto? GetTaskById(int taskId)
         {
-
-
-            TaskItem TaskItemlists = _taskRepository.GetTaskById(TaskId);
-            if (TaskItemlists == null)
-            {
-                return null;
-            }
-
-            TaskItemResponseDto TaskItemlistDto = new TaskItemResponseDto
-            {
-                TaskId = TaskItemlists.TaskId,
-                Title = TaskItemlists.Title,
-                Description = TaskItemlists.Description,
-                Status = TaskItemlists.Status
-            };
-
-
-            return TaskItemlistDto;
-
-
-
+            TaskItem? task = _taskRepository.GetTaskById(taskId);
+            return task == null ? null : MapToDto(task);
         }
 
-        TaskItemResponseDto SearchTasks(string Title)
+        public List<TaskItemResponseDto> SearchTasks(string title)
         {
-
-
-            TaskItem TaskItemlists = _taskRepository.SearchTasks(Title);
-            if (TaskItemlists == null)
-            {
-                return null;
-            }
-
-            TaskItemResponseDto TaskItemlistDto = new TaskItemResponseDto
-            {
-
-                Status = TaskItemlists.Status
-            };
-
-
-            return TaskItemlistDto;
-
+            return _taskRepository.SearchByTitle(title).Select(MapToDto).ToList();
         }
 
-     
-
-         ApiResponse<TaskItemResponseDto> AddTask(CreateTaskItemDto dto)
+        public ApiResponse<TaskItemResponseDto> AddTask(CreateTaskItemDto dto)
         {
-           var error = ValidateTask(dto.TaskId,dto.Title,dto.Status,dto.Description,dto.UserID);
-            if (error.Count > 0)
+            List<string> errors = ValidateTask(dto.Title, dto.Description, dto.Status, dto.UserId);
+            if (errors.Count > 0)
             {
-                return new ApiResponse<TaskItemResponseDto>
-                {
-                    Success = false,
-                    Message = "validation Error",
-                    Data = error
-                };
+                return Fail<TaskItemResponseDto>("Validation error.", errors);
             }
+
+            if (!_userRepository.UserExists(dto.UserId))
+            {
+                return Fail<TaskItemResponseDto>("Validation error.", new List<string> { "User not found." });
+            }
+
             try
             {
-                var TaskId = _taskRepository.AddTask(dto.TaskId, dto.Title, dto.Status, dto.Description, dto.UserID);
-                var Task = _taskRepository.GetTaskById(TaskId);
-                return new ApiResponse<TaskItemResponseDto>
-                {
-                    Success = true,
-                    Message = "Created successfully",
-                    Data = Task
-                };
-
+                int taskId = _taskRepository.AddTask(dto);
+                TaskItem? task = _taskRepository.GetTaskById(taskId);
+                return Success(MapToDto(task!), "Task created successfully.");
             }
-            catch
+            catch (Exception ex)
             {
-                return ErrorResponse< TaskItemResponseDto>(error);
+                return Fail<TaskItemResponseDto>(ex.Message);
             }
         }
 
-       
-
-        ApiResponse<TaskItemResponseDto> UpdateTask( int TaskId, UpdateTaskItemDto dto)
+        public ApiResponse<TaskItemResponseDto> UpdateTask(int taskId, UpdateTaskItemDto dto)
         {
-            if(TaskId <= 0)
+            if (taskId <= 0)
             {
-                return ValidationError<TaskItemResponseDto>("Invaild TaskId.");
+                return Fail<TaskItemResponseDto>("Invalid task id.");
             }
-            var error = ValidateTask(dto.Title, dto.Status, dto.Description, dto.UserID);
 
-            if (error.Count > 0)
+            List<string> errors = ValidateTask(dto.Title, dto.Description, dto.Status, dto.UserId);
+            if (errors.Count > 0)
             {
-                return new ApiResponse<TaskItemResponseDto>
-                {
-                    Success = true,
-                    Message = "validation Error",
-                    Data = error
-                };
+                return Fail<TaskItemResponseDto>("Validation error.", errors);
             }
+
+            if (!_taskRepository.TaskExists(taskId))
+            {
+                return Fail<TaskItemResponseDto>("Task not found.");
+            }
+
+            if (!_userRepository.UserExists(dto.UserId))
+            {
+                return Fail<TaskItemResponseDto>("Validation error.", new List<string> { "User not found." });
+            }
+
             try
             {
-                if (!_taskRepository.TaskExits(TaskId))
-                {
-                    return NotFound<TaskItemResponseDto>("Task Not Found.");
-                }
-                 _taskRepository.UpdateTask(TaskId, dto.Title, dto.Status, dto.Description, dto.UserID);
-                var Task = _taskRepository.GetTaskById(TaskId);
-                return new ApiResponse<TaskItemResponseDto>
-                {
-                    Success = true,
-                    Message = "Updated successfully",
-                    Data = Task
-                };
-
+                _taskRepository.UpdateTask(taskId, dto);
+                TaskItem? task = _taskRepository.GetTaskById(taskId);
+                return Success(MapToDto(task!), "Task updated successfully.");
             }
-            catch
+            catch (Exception ex)
             {
-                return ErrorResponse<TaskItemResponseDto>(error);
+                return Fail<TaskItemResponseDto>(ex.Message);
             }
         }
 
-        private ApiResponse<T> NotFound<T>(string v)
+        public ApiResponse<TaskItemResponseDto> ChangeStatus(int taskId, string status)
         {
-            throw new NotImplementedException();
-        }
-
-        private User ValidateTask(string title, string status, string description, int userID)
-        {
-            throw new NotImplementedException();
-        }
-
-        private ApiResponse<T> ValidationError<T>(string v)
-        {
-            throw new NotImplementedException();
-        }
-
-        public ChangeStatusDto ChangeStatus(int taskId, string newStatus)
-        {
-            TaskItem changeStatus = _taskRepository.GetTaskById(taskId);
-
-            if (changeStatus == null)
+            if (taskId <= 0)
             {
-                return null;
+                return Fail<TaskItemResponseDto>("Invalid task id.");
             }
 
-            changeStatus.Status = newStatus;
-
-            TaskItem updatedTask = _taskRepository.ChangeStatus(changeStatus);
-
-
-            return new ChangeStatusDto
+            if (string.IsNullOrWhiteSpace(status))
             {
-                TaskId = updatedTask.TaskId,
-
-                Status = updatedTask.Status
-            };
-        }
-
-        ApiResponse<TaskItemResponseDto> DeleteTask(int TaskID)
-        {
-            if (TaskId <= 0)
-            {
-                return ValidationError<TaskItemResponseDto>("Invaild TaskId.");
+                return Fail<TaskItemResponseDto>("Status is required.");
             }
+
+            if (!_taskRepository.TaskExists(taskId))
+            {
+                return Fail<TaskItemResponseDto>("Task not found.");
+            }
+
             try
             {
-                if(!_taskRepository.TaskExits(TaskID))
-                {
-                    return NotFound<TaskItemResponseDto>("Task Not Found");
-                }
-                _taskRepository.DeleteTask(TaskID);
+                _taskRepository.UpdateStatus(taskId, status);
+                TaskItem? task = _taskRepository.GetTaskById(taskId);
+                return Success(MapToDto(task!), "Task status updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Fail<TaskItemResponseDto>(ex.Message);
+            }
+        }
+
+        public ApiResponse<TaskItemResponseDto> DeleteTask(int taskId)
+        {
+            if (taskId <= 0)
+            {
+                return Fail<TaskItemResponseDto>("Invalid task id.");
+            }
+
+            if (!_taskRepository.TaskExists(taskId))
+            {
+                return Fail<TaskItemResponseDto>("Task not found.");
+            }
+
+            try
+            {
+                _taskRepository.DeleteTask(taskId);
                 return new ApiResponse<TaskItemResponseDto>
                 {
                     Success = true,
-                    Message = "Deleted Successfully",
-
+                    Message = "Task deleted successfully."
                 };
-
             }
-            catch
+            catch (Exception ex)
             {
-                return ErrorResponse<TaskItemResponseDto>("Error");
+                return Fail<TaskItemResponseDto>(ex.Message);
             }
-
-            
         }
 
-        List<TaskItemResponseDto> ITaskService.GetAllTasks()
+        private static List<string> ValidateTask(string title, string description, string status, int userId)
         {
-            return GetAllTasks();
+            List<string> errors = new();
+
+            if (string.IsNullOrWhiteSpace(title))
+                errors.Add("Title is required.");
+            if (string.IsNullOrWhiteSpace(description))
+                errors.Add("Description is required.");
+            if (string.IsNullOrWhiteSpace(status))
+                errors.Add("Status is required.");
+            if (userId <= 0)
+                errors.Add("Valid user id is required.");
+
+            return errors;
         }
 
-        TaskItemResponseDto ITaskService.GetTaskById(int TaskId)
+        private static TaskItemResponseDto MapToDto(TaskItem task) => new()
         {
-            return GetTaskById(TaskId);
-        }
+            TaskId = task.TaskId,
+            Title = task.Title,
+            Description = task.Description,
+            Status = task.Status,
+            CreatedDate = task.CreatedDate,
+            UserId = task.UserId
+        };
 
-        TaskItemResponseDto ITaskService.SearchTasks(string Title)
+        private static ApiResponse<T> Success<T>(T data, string message) => new()
         {
-            return SearchTasks(Title);
-        }
+            Success = true,
+            Message = message,
+            Data = data
+        };
 
-        public List<TaskItemResponseDto> AddTask(int TaskId, string Title, string Description, string Status, int UserId, List<TaskItemResponseDto> taskDto, TaskItemResponseDto TaskItemlist, List<TaskItemResponseDto> taskItemlist)
+        private static ApiResponse<T> Fail<T>(string message, List<string>? errors = null) => new()
         {
-            throw new NotImplementedException();
-        }
-
-      
-        TaskItemResponseDto ITaskService.ChangeStatus(int taskId, string newStatus)
-        {
-            throw new NotImplementedException();
-        }
-        private User ValidateTask(int taskId, string? title, string? status, string description, int userID)
-        {
-            throw new NotImplementedException();
-        }
-
-        private ApiResponse<T> ErrorResponse<T>(object error)
-        {
-            throw new NotImplementedException();
-        }
-
-       
-        void ITaskService.DeleteTask(int TaskID)
-        {
-            if (TaskID <= 0)
-            {
-                // Optionally, throw an exception or handle invalid TaskID as per your application's error handling policy
-                throw new ArgumentException("Invalid TaskId.");
-            }
-            if (!_taskRepository.TaskExits(TaskID))
-            {
-                // Optionally, throw an exception or handle not found as per your application's error handling policy
-                throw new InvalidOperationException("Task Not Found");
-            }
-            _taskRepository.DeleteTask(TaskID);
-        }
-
-        public TaskItemResponseDto UpdateTask(int taskId, string title, string description, string status, int userId)
-        {
-            throw new NotImplementedException();
-        }
+            Success = false,
+            Message = message,
+            Error = errors ?? new List<string> { message }
+        };
     }
 }
-
-
-
-
-
-
-
-
-
-
-       
-
-

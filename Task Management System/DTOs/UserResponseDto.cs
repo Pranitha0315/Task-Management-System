@@ -1,10 +1,9 @@
-﻿namespace Task_Management_System.DTOs
+namespace Task_Management_System.DTOs
 {
-    public class UserWithTasksDto
+    public class UserResponseDto
     {
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public List<TaskItemResponseDto> Tasks { get; set; } = new();
     }
 }

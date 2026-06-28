@@ -1,192 +1,176 @@
-﻿using Google.Api.Ads.AdWords.v201809;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Exchange.WebServices.Data;
-using Microsoft.IdentityModel.Tokens.Experimental;
-using System.Reflection.PortableExecutable;
-using Task_Management_System.DTOs;
+﻿using Task_Management_System.DTOs;
 using Task_Management_System.Models;
 using Task_Management_System.Repositories;
-
 
 namespace Task_Management_System.Services
 {
     public class UserService : IUserService
     {
-        private readonly IUserRepository _UserRepository;
-        private readonly object _taskRepository;
+        private readonly IUserRepository _userRepository;
 
-        public UserService(IUserRepository UserRepository)
+        public UserService(IUserRepository userRepository)
         {
-            _UserRepository = UserRepository;
-        }
-        public List<ApiResponse> GetAllUsers()
-        {
-            List<User> Userlist = _UserRepository.GetAllUsers();
-            List<ApiResponse> UserlistSDtos = new List<ApiResponse>();
-            foreach (var Details in Userlist)
-            {
-                ApiResponse UserlistSDto = new ApiResponse
-                {
-                    UserId = Details.UserId,
-                    UserName = Details.UserName,
-                    Email = Details.Email
-                };
-
-                UserlistSDtos.Add(UserlistSDto);
-
-
-            }
-            return UserlistSDtos;
+            _userRepository = userRepository;
         }
 
-
-
-        public ApiResponse GetUserById(int UserId)
+        public List<UserResponseDto> GetAllUsers()
         {
-            User Details = _UserRepository.GetUserById(UserId);
-            if (Details == null)
-            {
-                return null;
-            }
-            ApiResponse UserlistSDto = new ApiResponse
-            {
-                UserId = Details.UserId,
-                UserName = Details.UserName,
-                Email = Details.Email
-            };
-            return UserlistSDto;
+            return _userRepository.GetAllUsers().Select(MapToDto).ToList();
         }
 
-        ApiResponse<User> IUserService.AddUser(CreateUserDto dto)
+        public UserResponseDto? GetUserById(int userId)
         {
-                var errors = ValidateUser(dto);
-            if (errors != null && errors.Count > 0)
+            User? user = _userRepository.GetUserById(userId);
+            return user == null ? null : MapToDto(user);
+        }
+
+        public ApiResponse<UserResponseDto> AddUser(CreateUserDto dto)
+        {
+            List<string> errors = ValidateUser(dto.UserName, dto.Email);
+            if (errors.Count > 0)
             {
-                return new ApiResponse<User>
-                {
-                    Success = false,
-                    Message = "Validation Error",
-                    Error = errors
-                };
+                return Fail<UserResponseDto>("Validation error.", errors);
             }
+
+            if (_userRepository.EmailExists(dto.Email))
+            {
+                return Fail<UserResponseDto>("Validation error.", new List<string> { "Email already exists." });
+            }
+
             try
             {
-                if (_UserRepository.EmailExit(dto.Email))
-                {
-                    return new ApiResponse<User>
-                    {
-                        Success = false,
-                        Message = "Validation Error",
-                        Error = new List<string> { "Valid unique email is required" }
-                    };
-                }
-                var userid = _UserRepository.AddUser(dto.UserName, dto.Email);
-                var user = _UserRepository.GetUserById(userid);
-                return new ApiResponse<User>
-                {
-                    Success = true,
-                    Message = "User created successfully.",
-                    Data = user
-                };
+                int userId = _userRepository.AddUser(dto.UserName, dto.Email);
+                User? user = _userRepository.GetUserById(userId);
+                return Success(MapToDto(user!), "User created successfully.");
             }
             catch (Exception ex)
             {
-                return ErrorResponse<User>(ex.Message);
+                return Fail<UserResponseDto>(ex.Message);
             }
         }
 
-        private List<string> ValidateUser(CreateUserDto dto)
+        public ApiResponse<UserResponseDto> UpdateUser(int userId, UpdateUserDto dto)
         {
-            var errors = new List<string>();
-            if (string.IsNullOrWhiteSpace(dto.UserName))
+            if (userId <= 0)
+            {
+                return Fail<UserResponseDto>("Invalid user id.");
+            }
+
+            List<string> errors = ValidateUser(dto.UserName, dto.Email);
+            if (errors.Count > 0)
+            {
+                return Fail<UserResponseDto>("Validation error.", errors);
+            }
+
+            if (!_userRepository.UserExists(userId))
+            {
+                return Fail<UserResponseDto>("User not found.");
+            }
+
+            try
+            {
+                _userRepository.UpdateUser(userId, dto.UserName, dto.Email);
+                User? user = _userRepository.GetUserById(userId);
+                return Success(MapToDto(user!), "User updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Fail<UserResponseDto>(ex.Message);
+            }
+        }
+
+        public ApiResponse<UserWithTasksDto> GetUserWithTasks(int userId)
+        {
+            if (userId <= 0)
+            {
+                return Fail<UserWithTasksDto>("Invalid user id.");
+            }
+
+            try
+            {
+                User? user = _userRepository.GetUserWithTasks(userId);
+                if (user == null)
+                {
+                    return Fail<UserWithTasksDto>("User not found.");
+                }
+
+                return Success(new UserWithTasksDto
+                {
+                    UserId = user.UserId,
+                    UserName = user.UserName,
+                    Email = user.Email,
+                    Tasks = user.Tasks.Select(t => new TaskItemResponseDto
+                    {
+                        TaskId = t.TaskId,
+                        Title = t.Title,
+                        Description = t.Description,
+                        Status = t.Status,
+                        CreatedDate = t.CreatedDate,
+                        UserId = t.UserId
+                    }).ToList()
+                }, "User with tasks retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Fail<UserWithTasksDto>(ex.Message);
+            }
+        }
+
+        public ApiResponse<UserResponseDto> DeleteUser(int userId)
+        {
+            if (userId <= 0)
+            {
+                return Fail<UserResponseDto>("Invalid user id.");
+            }
+
+            User? user = _userRepository.GetUserById(userId);
+            if (user == null)
+            {
+                return Fail<UserResponseDto>("User not found.");
+            }
+
+            try
+            {
+                _userRepository.DeleteUser(userId);
+                return Success(MapToDto(user), "User deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                return Fail<UserResponseDto>(ex.Message);
+            }
+        }
+
+        private static List<string> ValidateUser(string userName, string email)
+        {
+            List<string> errors = new();
+
+            if (string.IsNullOrWhiteSpace(userName))
                 errors.Add("UserName is required.");
-            if (string.IsNullOrWhiteSpace(dto.Email))
+            if (string.IsNullOrWhiteSpace(email))
                 errors.Add("Email is required.");
-            // Add more validation as needed
+
             return errors;
         }
 
-        ApiResponse<UserWithTasksDto> IUserService.GetUserWithTasks(int UserId)
+        private static UserResponseDto MapToDto(User user) => new()
         {
-            if (UserId <= 0)
-            {
-                return ValidationError<UserWithTasksDto>("Invaild User Id");
-            }
-            try
-            {
-                User Details = _UserRepository.GetUserWithTasks(UserId);
+            UserId = user.UserId,
+            UserName = user.UserName,
+            Email = user.Email
+        };
 
-                if (Details == null)
-                {
-                    return NotFound<UserWithTasksDto>("User not found");
-                }
-                return new ApiResponse<UserWithTasksDto>
-                {
-                    Success = true,
-                    Message = "User with task recived successfully",
-                    Data = Details
-                };
-            }
-            catch
-            {
-                return ErrorResponse<UserWithTasksDto>("found error");
-            }
-
-            
-
-        }
-
-        private ApiResponse<T> ErrorResponse<T>(string error)
+        private static ApiResponse<T> Success<T>(T data, string message) => new()
         {
-            return new ApiResponse<T>
-            {
-                Success = false,
-                Message = "An error occurred.",
-                Error = new List<string> { error }
-            };
-        }
+            Success = true,
+            Message = message,
+            Data = data
+        };
 
-        private ApiResponse<T> NotFound<T>(string message)
+        private static ApiResponse<T> Fail<T>(string message, List<string>? errors = null) => new()
         {
-            return new ApiResponse<T>
-            {
-                Success = false,
-                Message = message,
-                Error = new List<string> { message }
-            };
-        }
-
-        private ApiResponse<T> ValidationError<T>(string message)
-        {
-            return new ApiResponse<T>
-            {
-                Success = false,
-                Message = "Validation Error",
-                Error = new List<string> { message }
-            };
-        }
-
-        public List<CreateUserDto> AddUser(int UserId, string UserName, string Email, List<CreateUserDto> userlist)
-        {
-            throw new NotImplementedException();
-        }
-
+            Success = false,
+            Message = message,
+            Error = errors ?? new List<string> { message }
+        };
     }
 }
-
-//List<TaskItemResponseDto> tasks = _taskRepository.GetUserWithTasks(UserId);
-
-
-//UserWithTasksDto userWithTasksDto = new UserWithTasksDto
-//{
-//    UserId = Details.UserId,
-//    UserName = Details.UserName,
-//    Email = Details.Email,
-//    Tasks = tasks.Select(t => new TaskItemResponseDto
-//    {
-//        TaskId = t.TaskId,
-//        Title = t.Title,
-//        Description = t.Description,
-//        Status = t.Status
-//    }).ToList()
-//};

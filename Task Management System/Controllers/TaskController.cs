@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using Nest;
+﻿using Microsoft.AspNetCore.Mvc;
 using Task_Management_System.DTOs;
 using Task_Management_System.Services;
 
@@ -12,55 +9,72 @@ namespace Task_Management_System.Controllers
     public class TaskController : ControllerBase
     {
         private readonly ITaskService _taskService;
+
         public TaskController(ITaskService taskService)
         {
             _taskService = taskService;
         }
+
         [HttpGet]
         public IActionResult GetAllTasks()
         {
-            var result = _taskService.GetAllTasks();
-            return Ok(result);
+            return Ok(_taskService.GetAllTasks());
         }
-        [HttpGet("{TaskId}")]
-        public IActionResult GetTaskById(int TaskId)
+
+        [HttpGet("{taskId}")]
+        public IActionResult GetTaskById(int taskId)
         {
-            var result = _taskService.GetTaskById(TaskId);
-            return Ok(result);
+            TaskItemResponseDto? task = _taskService.GetTaskById(taskId);
+            return task == null ? NotFound() : Ok(task);
         }
-        [HttpGet("Title")]
-        public IActionResult SearchTasks(string Title)
+
+        [HttpGet("search")]
+        public IActionResult SearchTasks([FromQuery] string title)
         {
-            var result = _taskService.SearchTasks(Title);
-            return Ok(result);
+            return Ok(_taskService.SearchTasks(title));
         }
+
         [HttpPost]
         public IActionResult AddTask([FromBody] CreateTaskItemDto dto)
         {
-            var result = _taskService.AddTask(dto);
-            return Ok(result);
+            ApiResponse<TaskItemResponseDto> result = _taskService.AddTask(dto);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
-        [HttpPut("{TaskId}")]
-        public IActionResult UpdateTask(int TaskId, [FromBody] UpdateTaskItemDto dto)
+
+        [HttpPut("{taskId}")]
+        public IActionResult UpdateTask(int taskId, [FromBody] UpdateTaskItemDto dto)
         {
-            var result = _taskService.UpdateTask(TaskId, dto);
-            return Ok(result);
+            ApiResponse<TaskItemResponseDto> result = _taskService.UpdateTask(taskId, dto);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
 
+            return result.Message == "Task not found." ? NotFound(result) : BadRequest(result);
         }
-        [HttpPut("{TaskId}")]
-        public IActionResult ChangeStatus(int TaskId, string Status)
+
+        [HttpPut("{taskId}/status")]
+        public IActionResult ChangeStatus(int taskId, [FromQuery] string status)
         {
-            var result = _taskService.ChangeStatus(TaskId, Status);
-            return Ok(result);
+            ApiResponse<TaskItemResponseDto> result = _taskService.ChangeStatus(taskId, status);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
+
+            return result.Message == "Task not found." ? NotFound(result) : BadRequest(result);
         }
 
-        //[HttpDelete("{TaskId}")]
-        //public IActionResult DeleteTask(int TaskId)
-        //{
-        //    var result = _taskService.DeleteTask(TaskId);
-        //    return Ok(result);
-        //}
+        [HttpDelete("{taskId}")]
+        public IActionResult DeleteTask(int taskId)
+        {
+            ApiResponse<TaskItemResponseDto> result = _taskService.DeleteTask(taskId);
+            if (result.Success)
+            {
+                return Ok(result);
+            }
 
-
+            return result.Message == "Task not found." ? NotFound(result) : BadRequest(result);
+        }
     }
 }

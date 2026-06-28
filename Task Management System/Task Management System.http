@@ -1,6 +1,31 @@
-@Task_Management_System_HostAddress = http://localhost:5150
+@Task_Management_System_HostAddress = https://localhost:7008
 
-GET {{Task_Management_System_HostAddress}}/weatherforecast/
+GET {{Task_Management_System_HostAddress}}/api/User
 Accept: application/json
 
 ###
+
+GET {{Task_Management_System_HostAddress}}/api/Task
+Accept: application/json
+
+###
+
+POST {{Task_Management_System_HostAddress}}/api/User
+Content-Type: application/json
+
+{
+  "userName": "Test User",
+  "email": "test@example.com"
+}
+
+###
+
+POST {{Task_Management_System_HostAddress}}/api/Task
+Content-Type: application/json
+
+{
+  "title": "Sample Task",
+  "description": "Task description",
+  "status": "Todo",
+  "userId": 1
+}

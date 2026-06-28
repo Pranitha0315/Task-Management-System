@@ -2,14 +2,11 @@
 {
     public class TaskItemResponseDto
     {
-        internal string Status;
-
         public int TaskId { get; set; }
-        public string Title { get; set; }
-        public string Description { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
         public DateTime CreatedDate { get; set; }
         public int UserId { get; set; }
-        public string UserName { get; set; }
-        public object Email { get; internal set; }
     }
 }
